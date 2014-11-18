@@ -8,47 +8,56 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 
-/* Initialize the frame manager. */
-/*
-void
-frame_init (void) 
-{
-}
-*/
+#include "threads/malloc.h"
+#include "threads/palloc.h"
+#include "threads/synch.h"
+#include "threads/thread.h"
+#include "vm/frame.h"
 
-/* Tries to allocate and lock a frame for PAGE.
-   Returns the frame if successful, false on failure. */
-/*
-struct frame *
-frame_alloc_and_lock (struct page *page) 
-{
+void frame_init(void) {
+	list_init(&F_Table);
+	lock_init(&F_lock);
 }
-*/
 
-/* Locks P's frame into memory, if it has one.
-   Upon return, p->frame will not change until P is unlocked. */
-/*
-void
-frame_lock (struct page *p) 
-{
+void *frame_alloc(enum palloc_flags flags) {
+	if ((flags & PAL_USER) == 0) {
+		return NULL;
+	}
+	void *frame = palloc_get_page(flags);
+	if (frame) {
+		Update_Ftable(frame);
+	} else {
+		if (!frame_evict(frame)) {
+			PANIC("Frame could not be evicted because swap is full!");
+		}
+	}
+	return frame;
 }
-*/
 
-/* Releases frame F for use by another page.
-   F must be locked for use by the current process.
-   Any data in F is lost. */
-/*
-void
-frame_free (struct frame *f)
-{
+void frame_free(void *frame) {
+	struct list_elem *e;
+	lock_acquire(&F_lock);
+	for (e = list_begin(&F_Table); e != list_end(&F_Table); e = list_next(e)) {
+		struct frame *fte = list_entry(e, struct frame, elem);
+		if (fte->frame == frame) {
+			list_remove(e);
+			free(fte);
+			break;
+		}
+	}
+	lock_release(&F_lock);
+	palloc_free_page(frame);
 }
-*/
 
-/* Unlocks frame F, allowing it to be evicted.
-   F must be locked for use by the current process. */
-/*
-void
-frame_unlock (struct frame *f) 
-{
+void Update_Ftable(void *f) {
+	struct frame *fte = malloc(sizeof(struct frame));
+	fte->frame = f;
+	fte->thread = thread_current();
+	lock_acquire(&F_lock);
+	list_push_back(&F_Table, &fte->elem);
+	lock_release(&F_lock);
 }
-*/
+bool frame_evict(void *frame) {
+	return false;
+// Use clock algorithm with 2 hands
+}
