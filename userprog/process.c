@@ -19,6 +19,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "vm/frame.h"
+#include "vm/page.h"
 
 static thread_func start_process NO_RETURN;
 static bool load(const char *cmd_line, void (**eip)(void), void **esp);
@@ -69,6 +70,9 @@ static void start_process(void *exec_) {
 	struct exec_info *exec = exec_;
 	struct intr_frame if_;
 	bool success;
+
+	//initialize page table
+	page_table_init(&thread_current()->page_table);
 
 	/* Initialize interrupt frame and load executable. */
 	memset(&if_, 0, sizeof if_);
@@ -172,6 +176,9 @@ void process_exit(void) {
 		next = list_remove(e);
 		release_child(cs);
 	}
+
+	//destroy page table
+	page_exit(&cur->page_table);
 
 	/* Destroy the current process's page directory and switch back
 	 to the kernel-only page directory. */
@@ -385,7 +392,7 @@ bool load(const char *cmd_line, void (**eip)(void), void **esp) {
 
 /* load() helpers. */
 
-static bool install_page(void *upage, void *kpage, bool writable);
+//static bool install_page(void *upage, void *kpage, bool writable);
 
 /* Checks whether PHDR describes a valid, loadable segment in
  FILE and returns true if so, false otherwise. */
@@ -476,6 +483,11 @@ static bool load_segment(struct file *file, off_t ofs, uint8_t *upage,
 		if (!install_page(upage, kpage, writable)) {
 			//palloc_free_page (kpage);
 			frame_free(kpage);
+			return false;
+		}
+
+		if (!add_file_to_page_table(file, ofs, upage, page_read_bytes,
+				page_zero_bytes, writable)) {
 			return false;
 		}
 
@@ -590,7 +602,7 @@ static bool setup_stack(const char *cmd_line, void **esp) {
  with palloc_get_page().
  Returns true on success, false if UPAGE is already mapped or
  if memory allocation fails. */
-static bool install_page(void *upage, void *kpage, bool writable) {
+bool install_page(void *upage, void *kpage, bool writable) {
 	struct thread *t = thread_current();
 
 	/* Verify that there's not already a page at that virtual

@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include <hash.h>
 #include "threads/synch.h"
 
 /* States in a thread's life cycle. */
@@ -107,6 +108,8 @@ struct thread
     /* Owned by syscall.c. */
     struct list fds;                    /* List of file descriptors. */
     int next_handle;                    /* Next handle value. */
+
+    struct hash page_table;
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */

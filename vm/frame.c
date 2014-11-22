@@ -46,6 +46,8 @@ void frame_free(void *frame) {
 		}
 	}
 	lock_release(&F_lock);
+
+	//free that page in memory
 	palloc_free_page(frame);
 }
 
