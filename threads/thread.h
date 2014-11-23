@@ -109,7 +109,12 @@ struct thread
     struct list fds;                    /* List of file descriptors. */
     int next_handle;                    /* Next handle value. */
 
+    //supplemental page table
     struct hash page_table;
+
+    //mmap table
+    struct list mmap_table;
+    int mmap_id;
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */

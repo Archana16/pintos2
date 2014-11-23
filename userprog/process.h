@@ -3,11 +3,20 @@
 
 #include "threads/thread.h"
 
-tid_t process_execute (const char *file_name);
-int process_wait (tid_t);
-void process_exit (void);
-void process_activate (void);
+struct mmap_entry {
+	int map_id;
+	struct page *pte;
+	struct list_elem elem;
+};
 
-bool install_page (void *upage, void *kpage, bool writable);
+tid_t process_execute(const char *file_name);
+int process_wait(tid_t);
+void process_exit(void);
+void process_activate(void);
+
+bool install_page(void *upage, void *kpage, bool writable);
+
+bool add_mapping (struct page *pte);
+void remove_mapping (int mapping);
 
 #endif /* userprog/process.h */

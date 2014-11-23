@@ -177,6 +177,8 @@ void process_exit(void) {
 		release_child(cs);
 	}
 
+	//clean up the memory mapping
+	remove_mapping(-1);
 	//destroy page table
 	page_exit(&cur->page_table);
 
@@ -393,7 +395,6 @@ bool load(const char *cmd_line, void (**eip)(void), void **esp) {
 /* load() helpers. */
 
 //static bool install_page(void *upage, void *kpage, bool writable);
-
 /* Checks whether PHDR describes a valid, loadable segment in
  FILE and returns true if so, false otherwise. */
 static bool validate_segment(const struct Elf32_Phdr *phdr, struct file *file) {
@@ -609,4 +610,44 @@ bool install_page(void *upage, void *kpage, bool writable) {
 	 address, then map our page there. */
 	return (pagedir_get_page(t->pagedir, upage) == NULL
 			&& pagedir_set_page(t->pagedir, upage, kpage, writable));
+}
+/*keeps track what memory is used by memory mapped files*/
+bool add_mapping(struct page *pte) {
+	struct mmap_entry *mapping = malloc(sizeof(struct mmap_entry));
+	if (!mapping) {
+		return false;
+	}
+	mapping->pte = pte;
+	mapping->map_id = thread_current()->mmap_id;
+	list_push_back(&thread_current()->mmap_table, &mapping->elem);
+	return true;
+}
+
+/*removes all the mapped files mapping and writes back to its original file
+ frees the allocated the frame and frees the entry in the mapping table */
+void remove_mapping(int flag) {
+	struct thread *t = thread_current();
+	struct list_elem *next, *e = list_begin(&t->mmap_table);
+	while (e != list_end(&t->mmap_table)) {
+		next = list_next(e);
+		struct mmap_entry *mapping = list_entry(e, struct mmap_entry, elem);
+		if (mapping->map_id == -1 || flag == -1) {
+			if (mapping->pte->is_loaded) {
+				if (pagedir_is_dirty(t->pagedir, mapping->pte->u_vaddr)) {
+					//write back to the file
+					file_write_at(mapping->pte->file, mapping->pte->u_vaddr,
+							mapping->pte->read_bytes,
+							mapping->pte->file_offset);
+				}
+				//free the allocated frame
+				frame_free(pagedir_get_page(t->pagedir, mapping->pte->u_vaddr));
+				pagedir_clear_page(t->pagedir, mapping->pte->u_vaddr);
+			}
+			hash_delete(&t->page_table, &mapping->pte->elem);
+			list_remove(&mapping->elem);
+			free(mapping->pte);
+			free(mapping);
+		}
+		e = next;
+	}
 }

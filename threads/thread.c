@@ -471,6 +471,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->wait_status = NULL;
   list_init (&t->fds);
   t->next_handle = 2;
+  //initialize the memory map parameters
+  list_init(&t->mmap_table);
+  t->mmap_id = 0;
   t->magic = THREAD_MAGIC;
 
   old_level = intr_disable ();
