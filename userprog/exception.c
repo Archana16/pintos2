@@ -170,4 +170,3 @@ page_fault (struct intr_frame *f)
   kill (f);
   }
 }
-
