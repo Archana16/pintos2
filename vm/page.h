@@ -44,6 +44,7 @@ void page_deallocate(void *vaddr);
 bool page_in(void *fault_addr);
 bool page_out(struct page *);
 bool page_accessed_recently(struct page *);
+struct page * page_for_addr(const void *address);
 
 bool page_lock(const void *, bool will_write);
 void page_unlock(const void *);

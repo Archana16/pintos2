@@ -45,8 +45,7 @@ void page_exit(struct hash *pt) {
 /* Returns the page containing the given virtual ADDRESS,
  or a null pointer if no such page exists.
  Allocates stack pages as necessary. */
-static struct page *
-page_for_addr(const void *address) {
+struct page * page_for_addr(const void *address) {
 	struct page pte;
 	pte.u_vaddr = pg_round_down(address);
 	struct hash_elem *e = hash_find(&thread_current()->page_table, &pte.elem);
@@ -106,7 +105,18 @@ bool load_file(struct page *pte) {
 	return true;
 }
 bool load_swap(struct page *pte) {
-	return false;
+
+	uint8_t *frame = frame_alloc(PAL_USER);
+	if (!frame) {
+		return false;
+	}
+	swap_in(pte->swap_index, frame);
+	if (!install_page(pte->u_vaddr, frame, pte->write)) {
+		frame_free(frame);
+		return false;
+	}
+	pte->is_loaded = true;
+	return true;
 }
 bool load_mmap(struct page *pte) {
 	return false;
@@ -222,4 +232,3 @@ bool stack_grow(void *u_vaddr) {
 	}
 	return (hash_insert(&thread_current()->page_table, &pte->elem) == NULL);
 }
-

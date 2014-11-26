@@ -26,7 +26,8 @@ void *frame_alloc(enum palloc_flags flags) {
 	if (frame) {
 		Update_Ftable(frame);
 	} else {
-		if (!frame_evict(frame)) {
+		frame = frame_evict(frame);
+		if (!frame) {
 			PANIC("Frame could not be evicted because swap is full!");
 		}
 	}
@@ -58,8 +59,28 @@ void Update_Ftable(void *f) {
 	list_push_back(&F_Table, &fte->elem);
 	lock_release(&F_lock);
 }
-bool frame_evict(void *frame) {
-	return false;
-// Use clock algorithm with 2 hands
+void * frame_evict(void) {
+	//clock algorithm
+
+	struct list_elem *e;
+	lock_acquire(&F_lock);
+	for (e = list_begin(&F_Table); e != list_end(&F_Table); e = list_next(e)) {
+		struct frame *fte = list_entry(e, struct frame, elem);
+		if (pagedir_is_accessed(thread_current()->pagedir,
+				fte->spte->u_vaddr)) {
+			pagedir_set_accessed(thread_current()->pagedir, fte->spte->u_vaddr,
+					false);
+		} else {
+			//need to evict
+			if (pagedir_is_dirty(thread_current()->pagedir, fte->spte->u_vaddr)
+					|| fte->spte->page_flag == SWAP) {
+				fte->spte->swap_index = swap_out(fte->frame);
+			}
+			fte->spte->is_loaded = false;
+			return fte->frame;
+		}
+	}
+	lock_release(&F_Table);
+	return NULL;
 }
 

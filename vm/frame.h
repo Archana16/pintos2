@@ -33,6 +33,6 @@ void frame_unlock(struct frame *);
 
 void Update_Ftable(void *frame);
 
-bool frame_evict(void *frame);
+void * frame_evict(void);
 
 #endif /* vm/frame.h */
