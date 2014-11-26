@@ -24,11 +24,11 @@ void swap_init(void) {
 	//block from the swap space
 	swap_device = block_get_role(BLOCK_SWAP);
 	if (!swap_device) {
-		PANIC("No swap device found!");
+		return;
 	}
 	swap_bitmap = bitmap_create(block_size(swap_device) / SECTORS_PER_PAGE);
 	if (!swap_bitmap) {
-		PANIC("Unable to initialize swap map");
+		return;
 	}
 	bitmap_set_all(swap_bitmap, SWAP_FREE);
 	lock_init(&swap_lock);
@@ -36,7 +36,10 @@ void swap_init(void) {
 
 /* Swaps in page P, which must have a locked frame
  (and be swapped out). */
-void swap_in(struct frame *f,size_t index) {
+void swap_in(struct frame *f, size_t index) {
+	if (!swap_device || !swap_bitmap) {
+			PANIC("No swap partition available!");
+		}
 
 	lock_acquire(&swap_lock);
 	if (bitmap_test(swap_bitmap, index) == SWAP_FREE) {
@@ -55,6 +58,9 @@ void swap_in(struct frame *f,size_t index) {
 
 /* Swaps out page P, which must have a locked frame. */
 bool swap_out(struct frame *f) {
+	if (!swap_device || !swap_bitmap) {
+		PANIC("No swap partition available!");
+	}
 	lock_acquire(&swap_lock);
 	size_t free_index = bitmap_scan_and_flip(swap_bitmap, 0, 1, SWAP_FREE);
 	lock_release(&swap_lock);

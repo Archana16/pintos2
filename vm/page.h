@@ -41,7 +41,7 @@ void page_exit(struct hash *pt);
 struct page *page_allocate(void *, bool read_only);
 void page_deallocate(void *vaddr);
 
-bool page_in(void *fault_addr);
+bool page_in(struct page *);
 bool page_out(struct page *);
 bool page_accessed_recently(struct page *);
 struct page * page_for_addr(const void *address);

@@ -34,8 +34,10 @@ static void syscall_handler(struct intr_frame *);
 static void copy_in(void *, const void *, size_t);
 
 //mmap functions
-static int sys_map(int handle, void *addr);
+static int sys_mmap(int handle, void *addr);
 static int sys_munmap(int handle, void *addr);
+static void check_valid_ptr(const void *vaddr);
+static void check_valid_string(const void* str);
 
 /* Serializes file system operations. */
 static struct lock fs_lock;
@@ -70,8 +72,8 @@ static void syscall_handler(struct intr_frame *f) {
 					(syscall_function *) sys_seek }, { 1,
 					(syscall_function *) sys_tell }, { 1,
 					(syscall_function *) sys_close }, { 2,
-					(syscall_function *) sys_map }, { 2,
-					(syscall_function *) sys_unmap }, };
+					(syscall_function *) sys_mmap }, { 2,
+					(syscall_function *) sys_munmap }, };
 
 	const struct syscall *sc;
 	unsigned call_nr;
@@ -88,6 +90,7 @@ static void syscall_handler(struct intr_frame *f) {
 	memset(args, 0, sizeof args);
 	copy_in(args, (uint32_t *) f->esp + 1, sizeof *args * sc->arg_cnt);
 
+	check_valid_ptr((const void*) f->esp);
 	/* Execute the system call,
 	 and set the return value. */
 	f->eax = sc->func(args[0], args[1], args[2]);
@@ -98,6 +101,28 @@ static void syscall_handler(struct intr_frame *f) {
 static bool verify_user(const void *uaddr) {
 	return (uaddr < PHYS_BASE
 			&& pagedir_get_page(thread_current()->pagedir, uaddr) != NULL);
+}
+
+void check_valid_ptr(const void *vaddr) {
+	if (!is_user_vaddr(vaddr) || vaddr < USER_VADDR_BOTTOM) {
+		exit(-1);
+	}
+	struct page *pte = page_for_addr((void *) vaddr);
+	if (!pte) {
+		exit(-1);
+	}
+	load_page(pte);
+	if (!pte->is_loaded) {
+		exit(-1);
+	}
+}
+
+void check_valid_string(const void* str) {
+	check_valid_ptr(str);
+	while (*(char *) str != 0) {
+		str = (char *) str + 1;
+		check_valid_ptr(str);
+	}
 }
 
 /* Copies a byte from user address USRC to kernel address DST.
@@ -176,7 +201,7 @@ static int sys_exit(int exit_code) {
 static int sys_exec(const char *ufile) {
 	tid_t tid;
 	char *kfile = copy_in_string(ufile);
-
+	check_valid_string((const void*) kfile);
 	lock_acquire(&fs_lock);
 	tid = process_execute(kfile);
 	lock_release(&fs_lock);
@@ -194,6 +219,7 @@ static int sys_wait(tid_t child) {
 /* Create system call. */
 static int sys_create(const char *ufile, unsigned initial_size) {
 	char *kfile = copy_in_string(ufile);
+	check_valid_string((const void*) kfile);
 	bool ok;
 
 	lock_acquire(&fs_lock);
@@ -208,6 +234,7 @@ static int sys_create(const char *ufile, unsigned initial_size) {
 /* Remove system call. */
 static int sys_remove(const char *ufile) {
 	char *kfile = copy_in_string(ufile);
+	check_valid_string((const void*) kfile);
 	bool ok;
 
 	lock_acquire(&fs_lock);
@@ -229,6 +256,7 @@ struct file_descriptor {
 /* Open system call. */
 static int sys_open(const char *ufile) {
 	char *kfile = copy_in_string(ufile);
+	check_valid_string((const void*) kfile);
 	struct file_descriptor *fd;
 	int handle = -1;
 
@@ -433,6 +461,8 @@ void syscall_exit(void) {
 }
 
 int mmap(int handle, void *addr) {
+
+	check_valid_ptr(addr);
 	struct file_descriptor *fd = lookup_fd(handle);
 	//struct file *file = process_get_file(fd);
 	if (!fd->file || !addr || ((uint32_t) addr % PGSIZE) != 0) {

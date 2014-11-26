@@ -63,12 +63,11 @@ static bool do_page_in(struct page *p) {
 
 /* Faults in the page containing FAULT_ADDR.
  Returns true if successful, false on failure. */
-bool page_in(void *fault_addr) {
-	struct page *pte = page_for_addr(fault_addr);
-	if (!pte) {
-		return false;
-	}
+bool page_in(struct page * pte) {
 	bool success = false;
+	if (pte->is_loaded) {
+		return success;
+	}
 	switch (pte->page_flag) {
 	case FILE:
 		success = load_file(pte);

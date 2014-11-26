@@ -50,7 +50,10 @@ tid_t process_execute(const char *file_name) {
 
 	/* Create a new thread to execute FILE_NAME. */
 	strlcpy(thread_name, file_name, sizeof thread_name);
-	strtok_r(thread_name, " ", &save_ptr);
+	if (is_user_vaddr(file_name)) {
+		file_name = pagedir_get_page(thread_current()->pagedir, file_name);
+	}
+	file_name = strtok_r((char *) file_name, " ", &save_ptr);
 	tid = thread_create(thread_name, PRI_DEFAULT, start_process, &exec);
 	if (tid != TID_ERROR) {
 		sema_down(&exec.load_done);
@@ -580,17 +583,16 @@ static bool init_cmd_line(uint8_t *kpage, uint8_t *upage, const char *cmd_line,
 static bool setup_stack(const char *cmd_line, void **esp) {
 	uint8_t *kpage;
 	bool success = false;
-
-	//kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-	kpage = frame_alloc(PAL_USER | PAL_ZERO);
-	if (kpage != NULL) {
+	success = stack_grow(((uint8_t *) PHYS_BASE) - PGSIZE);
+	if (success) {
+		*esp = PHYS_BASE;
+		kpage = frame_alloc(PAL_USER | PAL_ZERO);
 		uint8_t *upage = ((uint8_t *) PHYS_BASE) - PGSIZE;
-		if (install_page(upage, kpage, true))
-			success = init_cmd_line(kpage, upage, cmd_line, esp);
-		else
-			//palloc_free_page(kpage);
-			frame_free(kpage);
+		success = init_cmd_line(kpage, upage, cmd_line, esp);
+	} else {
+		return success;
 	}
+
 	return success;
 }
 

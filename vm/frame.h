@@ -5,6 +5,8 @@
 #include "threads/synch.h"
 
 #include "threads/palloc.h"
+#include "vm/page.h"
+
 
 /* A physical frame. */
 struct frame {
@@ -23,7 +25,7 @@ struct lock F_lock;
 
 void frame_init(void);
 
-void* frame_alloc(enum palloc_flags);
+void* frame_alloc(enum palloc_flags,struct page *);
 
 void frame_lock(struct page *);
 
@@ -31,7 +33,7 @@ void frame_free(void *frame);
 
 void frame_unlock(struct frame *);
 
-void Update_Ftable(void *frame);
+void Update_Ftable(void *frame,struct page *);
 
 void * frame_evict(void);
 
