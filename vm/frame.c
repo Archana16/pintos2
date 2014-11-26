@@ -7,7 +7,6 @@
 #include "threads/palloc.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
-
 #include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "threads/synch.h"
@@ -63,3 +62,4 @@ bool frame_evict(void *frame) {
 	return false;
 // Use clock algorithm with 2 hands
 }
+
