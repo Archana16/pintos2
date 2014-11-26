@@ -198,3 +198,28 @@ bool page_lock(const void *addr, bool will_write) {
 /* Unlocks a page locked with page_lock(). */
 void page_unlock(const void *addr) {
 }
+
+bool stack_grow(void *u_vaddr) {
+	if (PHYS_BASE - pg_round_down(u_vaddr) > STACK_SIZE) {
+		return false;
+	}
+	struct page *pte = malloc(sizeof(struct page));
+	if (!pte) {
+		return false;
+	}
+	pte->u_vaddr = pg_round_down(u_vaddr);
+	pte->is_loaded = true;
+	pte->page_flag = SWAP;
+	uint8_t *frame = frame_alloc(PAL_USER);
+	if (!frame) {
+		free(pte);
+		return false;
+	}
+	if (!install_page(pte->u_vaddr, frame, true)) {
+		free(pte);
+		frame_free(frame);
+		return false;
+	}
+	return (hash_insert(&thread_current()->page_table, &pte->elem) == NULL);
+}
+
