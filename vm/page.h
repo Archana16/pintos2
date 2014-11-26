@@ -9,7 +9,7 @@
 
 enum page_flags
   {
-    FI = 001,           /* for file pages */
+    FILE = 001,           /* for file pages */
     SWAP = 002,             /* swapped out pages*/
     MMAP = 004              /* page in memory*/
   };
@@ -52,6 +52,9 @@ bool load_mmap(struct page *);
 bool add_file_to_page_table(struct file *file, int32_t ofs, uint8_t *upage,
 		uint32_t read_bytes, uint32_t zero_bytes,
 		bool writable);
+
+bool add_mmap_to_page_table(struct file *file, int32_t ofs, uint8_t *upage,
+		uint32_t read_bytes, uint32_t zero_bytes);
 
 hash_hash_func page_hash;
 hash_less_func page_less;

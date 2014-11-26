@@ -625,13 +625,13 @@ bool add_mapping(struct page *pte) {
 
 /*removes all the mapped files mapping and writes back to its original file
  frees the allocated the frame and frees the entry in the mapping table */
-void remove_mapping(int flag) {
+void remove_mapping(int id) {
 	struct thread *t = thread_current();
 	struct list_elem *next, *e = list_begin(&t->mmap_table);
 	while (e != list_end(&t->mmap_table)) {
 		next = list_next(e);
 		struct mmap_entry *mapping = list_entry(e, struct mmap_entry, elem);
-		if (mapping->map_id == -1 || flag == -1) {
+		if (mapping->map_id == -1 || id == -1) {
 			if (mapping->pte->is_loaded) {
 				if (pagedir_is_dirty(t->pagedir, mapping->pte->u_vaddr)) {
 					//write back to the file

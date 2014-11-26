@@ -54,7 +54,7 @@ void frame_free(void *frame) {
 void Update_Ftable(void *f) {
 	struct frame *fte = malloc(sizeof(struct frame));
 	fte->frame = f;
-	fte->thread = thread_current();
+	//fte->thread = thread_current();
 	lock_acquire(&F_lock);
 	list_push_back(&F_Table, &fte->elem);
 	lock_release(&F_lock);

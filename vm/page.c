@@ -71,21 +71,21 @@ bool page_in(void *fault_addr) {
 	}
 	bool success = false;
 	switch (pte->page_flag) {
-	case FI:
+	case FILE:
 		success = load_file(pte);
 		break;
 	case SWAP:
 		success = load_swap(pte);
 		break;
 	case MMAP:
-		success = load_mmap(pte);
+		success = load_file(pte);
 		break;
 	}
 	return success;
 }
 
 bool load_file(struct page *pte) {
-	void* addr = pagedir_get_page(thread_current()->pagedir, pte->u_vaddr);
+//	void* addr = pagedir_get_page(thread_current()->pagedir, pte->u_vaddr);
 	uint8_t *frame = frame_alloc(PAL_USER);
 	if (!frame) {
 		return false;
@@ -144,7 +144,28 @@ bool add_file_to_page_table(struct file *file, int32_t ofs, uint8_t *upage,
 	pte->zero_bytes = zero_bytes;
 	pte->write = writable;
 	pte->is_loaded = false;
-	pte->page_flag = FI;
+	pte->page_flag = FILE;
+	return (hash_insert(&thread_current()->page_table, &pte->elem) == NULL);
+}
+
+bool add_mmap_to_page_table(struct file *file, int32_t ofs, uint8_t *upage,
+		uint32_t read_bytes, uint32_t zero_bytes) {
+	struct page *pte = malloc(sizeof(struct page));
+	if (!pte) {
+		return false;
+	}
+	pte->file = file;
+	pte->file_offset = ofs;
+	pte->u_vaddr = upage;
+	pte->read_bytes = read_bytes;
+	pte->zero_bytes = zero_bytes;
+	pte->is_loaded = false;
+	pte->page_flag = MMAP;
+	pte->write = true;
+	if (!add_mapping(pte)) {
+		free(pte);
+		return false;
+	}
 	return (hash_insert(&thread_current()->page_table, &pte->elem) == NULL);
 }
 

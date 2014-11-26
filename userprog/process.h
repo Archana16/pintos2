@@ -17,6 +17,6 @@ void process_activate(void);
 bool install_page(void *upage, void *kpage, bool writable);
 
 bool add_mapping (struct page *pte);
-void remove_mapping (int mapping);
+void remove_mapping (int map_id);
 
 #endif /* userprog/process.h */

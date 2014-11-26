@@ -10,6 +10,7 @@ struct frame {
 void *frame;
 struct thread* thread;
 uint32_t *pte;
+struct page * spte;
 struct list_elem elem;
 };
 
