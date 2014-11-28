@@ -84,7 +84,7 @@ bool page_in(struct page * pte) {
 
 bool load_file(struct page *pte) {
 //	void* addr = pagedir_get_page(thread_current()->pagedir, pte->u_vaddr);
-	uint8_t *frame = frame_alloc(PAL_USER);
+	uint8_t *frame = frame_alloc(PAL_USER,pte);
 	if (!frame) {
 		return false;
 	}
@@ -104,12 +104,11 @@ bool load_file(struct page *pte) {
 	return true;
 }
 bool load_swap(struct page *pte) {
-
-	uint8_t *frame = frame_alloc(PAL_USER);
+	uint8_t *frame = frame_alloc(PAL_USER,pte);
 	if (!frame) {
 		return false;
 	}
-	swap_in(pte->swap_index, frame);
+	swap_in(frame,pte->swap_index);
 	if (!install_page(pte->u_vaddr, frame, pte->write)) {
 		frame_free(frame);
 		return false;
@@ -208,26 +207,30 @@ bool page_lock(const void *addr, bool will_write) {
 void page_unlock(const void *addr) {
 }
 
-bool stack_grow(void *u_vaddr) {
+uint8_t* stack_grow(void *u_vaddr) {
 	if (PHYS_BASE - pg_round_down(u_vaddr) > STACK_SIZE) {
-		return false;
+		return NULL;
 	}
 	struct page *pte = malloc(sizeof(struct page));
 	if (!pte) {
-		return false;
+		return NULL;
 	}
 	pte->u_vaddr = pg_round_down(u_vaddr);
 	pte->is_loaded = true;
 	pte->page_flag = SWAP;
-	uint8_t *frame = frame_alloc(PAL_USER);
+
+	uint8_t *frame = frame_alloc(PAL_USER,pte);
+	bool flag;
 	if (!frame) {
 		free(pte);
-		return false;
+		return NULL;
 	}
 	if (!install_page(pte->u_vaddr, frame, true)) {
 		free(pte);
 		frame_free(frame);
-		return false;
+		return NULL;
 	}
-	return (hash_insert(&thread_current()->page_table, &pte->elem) == NULL);
+	if(hash_insert(&thread_current()->page_table, &pte->elem) == NULL)
+		return NULL;
+	else return frame;
 }

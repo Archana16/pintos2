@@ -68,8 +68,7 @@ halt (void)
   NOT_REACHED ();
 }
 
-void
-exit (int status)
+void exit (int status)
 {
   syscall1 (SYS_EXIT, status);
   NOT_REACHED ();

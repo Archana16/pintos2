@@ -14,7 +14,7 @@
 #define SECTORS_PER_PAGE (PGSIZE/BLOCK_SECTOR_SIZE)
 
 void swap_init (void);
-void swap_in (struct frame *);
-bool swap_out (struct frame *);
+void swap_in(void *f, size_t index);
+bool swap_out (void * frame);
 
 #endif /* vm/swap.h */

@@ -1,20 +1,22 @@
 #include "userprog/syscall.h"
 #include <stdio.h>
-#include <string.h>
 #include <syscall-nr.h>
-#include "userprog/process.h"
-#include "userprog/pagedir.h"
+#include <user/syscall.h>
 #include "devices/input.h"
 #include "devices/shutdown.h"
-#include "filesys/filesys.h"
 #include "filesys/file.h"
+#include "filesys/filesys.h"
 #include "threads/interrupt.h"
 #include "threads/malloc.h"
-#include "threads/palloc.h"
+#include "threads/synch.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "userprog/pagedir.h"
+#include "userprog/process.h"
 #include "vm/frame.h"
 #include "vm/page.h"
+
+#define ERROR -1
 
 static int sys_halt(void);
 static int sys_exit(int status);
@@ -35,7 +37,7 @@ static void copy_in(void *, const void *, size_t);
 
 //mmap functions
 static int sys_mmap(int handle, void *addr);
-static int sys_munmap(int handle, void *addr);
+static void sys_munmap(int map_id);
 static void check_valid_ptr(const void *vaddr);
 static void check_valid_string(const void* str);
 
@@ -105,15 +107,15 @@ static bool verify_user(const void *uaddr) {
 
 void check_valid_ptr(const void *vaddr) {
 	if (!is_user_vaddr(vaddr) || vaddr < USER_VADDR_BOTTOM) {
-		exit(-1);
+		sys_exit(ERROR);
 	}
 	struct page *pte = page_for_addr((void *) vaddr);
 	if (!pte) {
-		exit(-1);
+		sys_exit(ERROR);
 	}
-	load_page(pte);
+	page_in(pte);
 	if (!pte->is_loaded) {
-		exit(-1);
+		sys_exit(ERROR);
 	}
 }
 
@@ -460,7 +462,7 @@ void syscall_exit(void) {
 	}
 }
 
-int mmap(int handle, void *addr) {
+static int sys_mmap(int handle, void *addr) {
 
 	check_valid_ptr(addr);
 	struct file_descriptor *fd = lookup_fd(handle);
@@ -476,7 +478,7 @@ int mmap(int handle, void *addr) {
 		uint32_t page_zero_bytes = PGSIZE - page_read_bytes;
 		if (!add_mmap_to_page_table(fd->file, ofs, addr, page_read_bytes,
 				page_zero_bytes)) {
-			munmap(thread_current()->mmap_id);
+			sys_munmap(thread_current()->mmap_id);
 			return 0;
 		}
 		read_bytes -= page_read_bytes;
@@ -486,6 +488,6 @@ int mmap(int handle, void *addr) {
 	return thread_current()->mmap_id;
 }
 
-void munmap(int map_id) {
+static void sys_munmap(int map_id) {
 	remove_mapping(map_id);
 }

@@ -36,7 +36,7 @@ void swap_init(void) {
 
 /* Swaps in page P, which must have a locked frame
  (and be swapped out). */
-void swap_in(struct frame *f, size_t index) {
+void swap_in(void *f, size_t index) {
 	if (!swap_device || !swap_bitmap) {
 			PANIC("No swap partition available!");
 		}
@@ -57,7 +57,7 @@ void swap_in(struct frame *f, size_t index) {
 }
 
 /* Swaps out page P, which must have a locked frame. */
-bool swap_out(struct frame *f) {
+bool swap_out(void *f) {
 	if (!swap_device || !swap_bitmap) {
 		PANIC("No swap partition available!");
 	}

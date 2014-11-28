@@ -88,16 +88,17 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
   else
     pages = NULL;
 
+  //Update_Ftable(pages);
   if (pages != NULL) 
-    {
-      if (flags & PAL_ZERO)
-        memset (pages, 0, PGSIZE * page_cnt);
-      update_FTable(pages);
-    }
-  else 
-    {
-      pages = frame_alloc_and_lock(pages,flags);
-    }
+     {
+       if (flags & PAL_ZERO)
+         memset (pages, 0, PGSIZE * page_cnt);
+     }
+   else
+     {
+       if (flags & PAL_ASSERT)
+         PANIC ("No more pages");
+     }
 
   return pages;
 }

@@ -471,11 +471,11 @@ static bool load_segment(struct file *file, off_t ofs, uint8_t *upage,
 
 		/* Get a page of memory. */
 		//uint8_t *kpage = palloc_get_page (PAL_USER);
-		uint8_t *kpage = frame_alloc(PAL_USER);
+		/*uint8_t *kpage = frame_alloc(PAL_USER);
 		if (kpage == NULL)
 			return false;
 
-		/* Load this page. */
+		 Load this page.
 		if (file_read(file, kpage, page_read_bytes) != (int) page_read_bytes) {
 			//palloc_free_page (kpage);
 			frame_free(kpage);
@@ -483,12 +483,12 @@ static bool load_segment(struct file *file, off_t ofs, uint8_t *upage,
 		}
 		memset(kpage + page_read_bytes, 0, page_zero_bytes);
 
-		/* Add the page to the process's address space. */
+		 Add the page to the process's address space.
 		if (!install_page(upage, kpage, writable)) {
 			//palloc_free_page (kpage);
 			frame_free(kpage);
 			return false;
-		}
+		}*/
 
 		if (!add_file_to_page_table(file, ofs, upage, page_read_bytes,
 				page_zero_bytes, writable)) {
@@ -581,19 +581,32 @@ static bool init_cmd_line(uint8_t *kpage, uint8_t *upage, const char *cmd_line,
  top of user virtual memory.  Fills in the page using CMD_LINE
  and sets *ESP to the stack pointer. */
 static bool setup_stack(const char *cmd_line, void **esp) {
-	uint8_t *kpage;
+	/*uint8_t *kpage;
 	bool success = false;
 	success = stack_grow(((uint8_t *) PHYS_BASE) - PGSIZE);
 	if (success) {
 		*esp = PHYS_BASE;
-		kpage = frame_alloc(PAL_USER | PAL_ZERO);
+
+		//archana
+		kpage = frame_alloc(PAL_USER | PAL_ZERO,NULL);
 		uint8_t *upage = ((uint8_t *) PHYS_BASE) - PGSIZE;
 		success = init_cmd_line(kpage, upage, cmd_line, esp);
 	} else {
 		return success;
 	}
+	return success;*/
+	uint8_t *kpage;
+		bool success = false;
+		kpage = stack_grow(((uint8_t *) PHYS_BASE) - PGSIZE);
+		if (kpage) {
+			*esp = PHYS_BASE;
+			uint8_t *upage = ((uint8_t *) PHYS_BASE) - PGSIZE;
+			success = init_cmd_line(kpage, upage, cmd_line, esp);
+		} else {
+			return success;
+		}
 
-	return success;
+		return success;
 }
 
 /* Adds a mapping from user virtual address UPAGE to kernel

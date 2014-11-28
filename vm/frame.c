@@ -26,7 +26,7 @@ void *frame_alloc(enum palloc_flags flags,struct page * pte) {
 	if (frame) {
 		Update_Ftable(frame,pte);
 	} else {
-		frame = frame_evict(frame);
+		frame = frame_evict();
 		if (!frame) {
 			PANIC("Frame could not be evicted because swap is full!");
 		}

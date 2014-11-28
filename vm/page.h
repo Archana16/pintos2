@@ -61,7 +61,7 @@ bool add_mmap_to_page_table(struct file *file, int32_t ofs, uint8_t *upage,
 		uint32_t read_bytes, uint32_t zero_bytes);
 
 
-bool stack_grow (void *);
+uint8_t* stack_grow (void *);
 
 hash_hash_func page_hash;
 hash_less_func page_less;
